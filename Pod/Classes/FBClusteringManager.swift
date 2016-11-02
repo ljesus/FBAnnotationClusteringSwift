@@ -12,6 +12,7 @@ import MapKit
 public protocol FBClusteringManagerDelegate {
     
     func cellSizeFactorForCoordinator(coordinator:FBClusteringManager) -> CGFloat
+    func shouldCluster(annotation:MKAnnotation) -> Bool
     
 }
 
@@ -140,16 +141,24 @@ public class FBClusteringManager : NSObject {
             var toRemove = NSMutableSet(set: before)
             toRemove.minusSet(after as Set<NSObject>)
             
-            let annotationsOnlyPredicate = NSPredicate(format: "SELF isKindOfClass:%@", argumentArray: [FBAnnotationClusterView.self])
-            toRemove.filterUsingPredicate(annotationsOnlyPredicate)
-       
+            var removeArray = [MKAnnotation]()
+            for annotation in toRemove.allObjects as! [MKAnnotation] {
+                if annotation is FBAnnotationCluster {
+                    removeArray.append(annotation)
+                } else if let delegate = self.delegate {
+                    if delegate.shouldCluster(annotation) {
+                        removeArray.append(annotation)
+                        
+                    }
+                }
+            }
+            
             if let toAddAnnotations = toAdd.allObjects as? [MKAnnotation]{
                 mapView.addAnnotations(toAddAnnotations)
             }
             
-            if let removeAnnotations = toRemove.allObjects as? [MKAnnotation]{
-                mapView.removeAnnotations(removeAnnotations)
-            }
+            mapView.removeAnnotations(removeArray)
+            
         }
         
     }
